@@ -1,6 +1,6 @@
 import "regenerator-runtime/runtime"; // https://github.com/JamesBrill/react-speech-recognition/issues/110#issuecomment-1898624289
 import { useEffect, useRef, useState } from "react";
-import { Live2DModel, MotionPriority } from "pixi-live2d-display-lipsyncpatch";
+import { Live2DModel, MotionPriority, SoundManager } from "pixi-live2d-display-lipsyncpatch";
 import LLMChatOpenAI from "./models/llm/LLMChatOpenAI.ts";
 import { addOrChangeSubtitle } from "./models/live2d/functions/subtitle.ts";
 import loadModel from "./models/live2d/functions/loadModel";
@@ -34,6 +34,8 @@ import {
   textToSpeechUseBackend,
   textToSpeechWeb,
 } from "./models/tts/textToSpeech.ts";
+import { useChat } from "ai/react"
+import SongList from "./components/songlist.tsx";
 
 export type contextType = {
   role: "user" | "assistant" | "system";
@@ -59,8 +61,16 @@ function addToContext(
 }
 
 function App() {
+  const {messages, input, handleInputChange, handleSubmit } = useChat({
+    api: 'http://127.0.0.1:61234/api/chat',
+    // streamProtocol: 'data',
+    onResponse: response => {
+      console.log(response.body)
+      console.log('Received HTTP response from server:', response);
+    },
+  })
   const [model, setModel] = useState<Live2DModel | null>(null);
-
+  const [vocals, setVocals] = useState("")
   const [context, setContext] = useState<contextType[]>(defaultContext);
   const [subtitle, setSubtitle] = useState("");
   const [debugMode, setDebugMode] = useState(false);
@@ -115,10 +125,12 @@ function App() {
   // load model when init
   useEffect(() => {
     (async () => {
-      setModel(await loadModel());
+      setModel(await loadModel())
     })();
   }, []);
 
+  // motion event
+  
   // when model loaded, put it to stage
   useEffect(() => {
     if (!model) return;
@@ -212,7 +224,7 @@ function App() {
       return;
     }
 
-    const volume = 1; // 声音大小 [可选参数，可以为null或空][0.0-1.0]
+    const volume = .2; // 声音大小 [可选参数，可以为null或空][0.0-1.0]
     const expression = undefined; // 模型表情 [可选参数，可以为null或空] [index | expression表情名称]
     const resetExpression = true; // 是否在动画结束后将表情expression重置为默认值 [可选参数，可以为null或空] [true | false] [default: true]
     const crossOrigin = "anonymous"; // 使用不同来源的音频 [可选] [default: null]
@@ -235,11 +247,10 @@ function App() {
         model
           .motion("Speak", undefined, MotionPriority.FORCE)
           .catch((e) => console.error(e));
-        model.speak(audio_link, {
-          volume: volume,
+        model.motion("Speak", undefined, MotionPriority.FORCE, {sound: audio_link, volume: volume,
           expression: expression,
           resetExpression: resetExpression,
-          crossOrigin: crossOrigin,
+          crossOrigin: crossOrigin, 
           onFinish: () => {
             console.log("model stop speak");
             model.motion("Idle").catch((e) => console.error(e));
@@ -248,8 +259,23 @@ function App() {
           onError: (err) => {
             console.error("Error: ", err);
             reject(err); // 发生错误时拒绝 Promise
-          },
-        });
+          },})
+       
+        // model.speak(audio_link, {
+        //   volume: volume,
+        //   expression: expression,
+        //   resetExpression: resetExpression,
+        //   crossOrigin: crossOrigin,
+        //   onFinish: () => {
+        //     console.log("model stop speak");
+        //     model.motion("Idle").catch((e) => console.error(e));
+        //     resolve(); // 成功时解析 Promise
+        //   },
+        //   onError: (err) => {
+        //     console.error("Error: ", err);
+        //     reject(err); // 发生错误时拒绝 Promise
+        //   },
+        // });
       });
     }
 
@@ -295,7 +321,7 @@ function App() {
       if (model) {
         setSubtitle("");
         modelShowsUp(model);
-        handleSpeechRecognized(findTopic());
+        // handleSpeechRecognized(findTopic());
       }
     } else {
       if (listening) {
@@ -365,19 +391,58 @@ function App() {
           checked={showContext}
           onChange={(e) => setShowContext(e.target.checked)}
         />
-        Show context log
+        Chat
       </label>
       {showContext && (
-        <ul>
-          {context.map((e) => {
-            return (
-              <li key={e.role + e.content}>
-                {e.role}: {e.content}
-              </li>
-            );
-          })}
-        </ul>
+            <>
+            {messages.map(message => (
+              <div key={message.id}>
+                {message.role === 'user' ? 'User: ' : 'AI: '}
+                {message.content}
+              </div>
+            ))}
+      
+            <form onSubmit={handleSubmit}>
+              <input name="prompt" value={input} onChange={handleInputChange} />
+              <button type="submit">Submit</button>
+              <button className='button' onClick={async () => {
+                await handleSpeak('http://localhost:8000/psql/cover/11/vocals', model)
+                console.log(SoundManager.audios)
+              }}>Singas</button>
+              <button onClick={() => {console.log(SoundManager.audios)}}>Verisound</button>
+              <button onClick={ () => {
+                // if(!SoundManager.audios[0]) return
+                console.log(SoundManager.audios[0].currentTime)
+                // SoundManager.add('http://localhost:8000/psql/cover/11/vocals')
+              }}>Time</button>
+              <button onClick={async () => {SoundManager.audios[0].pause()}}>pause</button>
+              <button onClick={async () => {SoundManager.audios[0].play()}}>play</button>
+              <button onClick={async () => {
+                let audio = SoundManager.audios[0]
+                
+
+                // audio.fastSeek(10)
+                // audio.play()
+
+               //SoundManager.audios[0].play()
+            }
+                }>rewind</button>
+              
+              
+            </form>
+            <audio src="http://localhost:8000/psql/cover/11/backing" controls/>
+          </>
+        // <ul>
+        //   {context.map((e) => {
+        //     return (
+        //       <li key={e.role + e.content}>
+        //         {e.role}: {e.content}
+        //       </li>
+        //     );
+        //   })}
+        // </ul>
       )}
+      <SongList/>
     </>
   );
 }
