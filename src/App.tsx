@@ -404,45 +404,11 @@ function App() {
       
             <form onSubmit={handleSubmit}>
               <input name="prompt" value={input} onChange={handleInputChange} />
-              <button type="submit">Submit</button>
-              <button className='button' onClick={async () => {
-                await handleSpeak('http://localhost:8000/psql/cover/11/vocals', model)
-                console.log(SoundManager.audios)
-              }}>Singas</button>
-              <button onClick={() => {console.log(SoundManager.audios)}}>Verisound</button>
-              <button onClick={ () => {
-                // if(!SoundManager.audios[0]) return
-                console.log(SoundManager.audios[0].currentTime)
-                // SoundManager.add('http://localhost:8000/psql/cover/11/vocals')
-              }}>Time</button>
-              <button onClick={async () => {SoundManager.audios[0].pause()}}>pause</button>
-              <button onClick={async () => {SoundManager.audios[0].play()}}>play</button>
-              <button onClick={async () => {
-                let audio = SoundManager.audios[0]
-                
-
-                // audio.fastSeek(10)
-                // audio.play()
-
-               //SoundManager.audios[0].play()
-            }
-                }>rewind</button>
-              
-              
+              <button type="submit">Submit</button>            
             </form>
-            <audio src="http://localhost:8000/psql/cover/11/backing" controls/>
           </>
-        // <ul>
-        //   {context.map((e) => {
-        //     return (
-        //       <li key={e.role + e.content}>
-        //         {e.role}: {e.content}
-        //       </li>
-        //     );
-        //   })}
-        // </ul>
       )}
-      <SongList/>
+      <SongList model={model} handleSpeak={handleSpeak}/>
     </>
   );
 }

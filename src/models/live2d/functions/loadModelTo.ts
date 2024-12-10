@@ -1,6 +1,6 @@
 import { RefObject } from "react";
 import { Application } from "@pixi/app";
-import { Live2DModel } from "pixi-live2d-display-lipsyncpatch";
+import { Live2DModel, SoundManager } from "pixi-live2d-display-lipsyncpatch";
 import { ICanvas } from "pixi.js";
 
 let app: Application<ICanvas> | null = null;
@@ -39,6 +39,27 @@ export function loadModelTo(stage: RefObject<HTMLElement>, model: Live2DModel) {
   model.scale.set(Math.min(scaleX, scaleY) * 2);
   model.x = canvas.width / 2 - model.width / 2;
   model.y = canvas.height; // model is under the stage first
+
+    //Current handling for syncing and playing vocal and backing tracks together. 
+    model.internalModel.motionManager.on('motionStart', (index, group, audio) => {
+  
+      if(audio) {
+        const match = audio.src.match(/\/psql\/cover\/([^/]+)\/(backing|vocals)/);
+        console.log("match:", match[1])
+        if (match[1]) {
+          SoundManager.audios[0].pause()
+          SoundManager.audios[0].currentTime = 0
+          SoundManager.add(`http://localhost:8000/psql/cover/${match[1]}/backing`)
+          console.log(SoundManager.audios)
+  
+          SoundManager.audios[1].addEventListener('canplaythrough', () => {
+            SoundManager.audios[0].play()
+            SoundManager.audios[1].play()
+  
+          })
+        }     
+      }
+    })
 
   return () => {
     if (app) app.destroy();
