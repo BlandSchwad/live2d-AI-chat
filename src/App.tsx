@@ -29,11 +29,11 @@ import { useSpeechRecognition } from "react-speech-recognition";
 import LLMChatWebLLM from "./models/llm/LLMChatWebLLM.ts";
 import { ChatCompletionChunk } from "@mlc-ai/web-llm";
 import { defaultContext, promptHint } from "./models/prompt/static.ts";
-import { findTopic } from "./models/prompt/findTopic.ts";
 import {
   textToSpeechUseBackend,
   textToSpeechWeb,
 } from "./models/tts/textToSpeech.ts";
+// import CoverSong from './components/CoverSong.tsx'
 import { useChat } from "ai/react"
 import SongList from "./components/songlist.tsx";
 
@@ -64,10 +64,10 @@ function App() {
   const {messages, input, handleInputChange, handleSubmit } = useChat({
     api: 'http://127.0.0.1:61234/api/chat',
     // streamProtocol: 'data',
-    onResponse: response => {
-      console.log(response.body)
-      console.log('Received HTTP response from server:', response);
-    },
+    // onResponse: response => {
+    //   console.log(response.body)
+    //   console.log('Received HTTP response from server:', response);
+    // },
   })
   const [model, setModel] = useState<Live2DModel | null>(null);
   const [vocals, setVocals] = useState("")
@@ -76,6 +76,7 @@ function App() {
   const [debugMode, setDebugMode] = useState(false);
   const [showSetting, setShowSetting] = useState(false);
   const [showContext, setShowContext] = useState(false);
+  const [showSongList, setShowSongList] = useState(false)
   const [chat, setChat] = useState<LLMChatWebLLM | LLMChatOpenAI | null>(null);
 
   const stage = useRef<HTMLDivElement>(null);
@@ -408,7 +409,16 @@ function App() {
             </form>
           </>
       )}
-      <SongList model={model} handleSpeak={handleSpeak}/>
+      <label>
+        <input type="checkbox" checked={showSongList}
+        onChange={(e) => {setShowSongList(e.target.checked)}}
+         
+         />
+        Songs
+
+      </label>
+      {showSongList && <SongList model={model} handleSpeak={handleSpeak}/>}
+      {/* <CoverSong/> */}
     </>
   );
 }
