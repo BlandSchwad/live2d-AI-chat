@@ -3,6 +3,7 @@ import { Application } from "@pixi/app";
 import { Live2DModel, SoundManager } from "pixi-live2d-display-lipsyncpatch";
 import { ICanvas } from "pixi.js";
 
+
 let app: Application<ICanvas> | null = null;
 let canvas: HTMLCanvasElement | null = null;
 
@@ -41,12 +42,13 @@ export function loadModelTo(stage: RefObject<HTMLElement>, model: Live2DModel) {
   model.y = canvas.height; // model is under the stage first
 
     //Current handling for syncing and playing vocal and backing tracks together. 
-    model.internalModel.motionManager.on('motionStart', (index, group, audio) => {
+    // @ts-ignore
+    model.internalModel.motionManager.on('motionStart', (index : string, group : string, audio :HTMLAudioElement ) => {
   
       if(audio) {
         const match = audio.src.match(/\/psql\/cover\/([^/]+)\/(backing|vocals)/);
-        console.log("match:", match[1])
-        if (match[1]) {
+        // console.log("match:", match[1])
+        if (match) {
           SoundManager.audios[0].pause()
           SoundManager.audios[0].currentTime = 0
           SoundManager.add(`http://localhost:8000/psql/cover/${match[1]}/backing`)
