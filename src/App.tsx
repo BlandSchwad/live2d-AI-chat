@@ -35,7 +35,7 @@ import {
 } from "./models/tts/textToSpeech.ts";
 // import CoverSong from './components/CoverSong.tsx'
 import { useChat } from "ai/react"
-import SongList from "./components/songlist.tsx";
+// import SongList from "./components/songlist.tsx";
 
 export type contextType = {
   role: "user" | "assistant" | "system";
@@ -417,7 +417,7 @@ function App() {
         Songs
 
       </label>
-      {showSongList && <SongList model={model} handleSpeak={handleSpeak}/>}
+      {/* {showSongList && <SongList model={model} handleSpeak={handleSpeak}/>} */}
       {/* <CoverSong/> */}
     </>
   );
