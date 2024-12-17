@@ -91,7 +91,7 @@ export default function Debug({
               run CustomMotion
             </button>
             <Button onClick={() => {
-              handleSpeak('https://storage.googleapis.com/song-testing-bucket-426522/LFoyXEFaz2Q/54/vocals.mp3', model)
+              handleSpeak('https://storage.googleapis.com/song-testing-bucket-426522/zoKThsOCjuU/57/vocals.mp3', model)
               }}>Cloud Speak</Button>
           </div>
         </div>

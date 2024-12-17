@@ -297,27 +297,27 @@ function App() {
 
   // user click screen
   function handleClickScreen() {
-    if (chat instanceof LLMChatWebLLM) {
-      if (chat.getInitStatus() === "not start") {
-        const answer = confirm(
-          "webLLM need to load every time, first time need some time to download model(~1.5G(PC)/~800MB(phone)). load now?"
-        );
-        if (answer) {
-          const timer = setInterval(() => {
-            setSubtitle(chat.initProgress || "webLLM loading");
-          }, 1000);
-          chat.init().then(() => {
-            clearInterval(timer);
-            if (chat.getInitStatus() === "done") setSubtitle("webLLM loaded");
-            else setSubtitle("webLLM error");
-          });
-        }
-        return;
-      } else if (chat.getInitStatus() === "working") {
-        alert("webLLM loading: " + chat.initProgress);
-        return;
-      }
-    }
+    // if (chat instanceof LLMChatWebLLM) {
+    //   if (chat.getInitStatus() === "not start") {
+    //     const answer = confirm(
+    //       "webLLM need to load every time, first time need some time to download model(~1.5G(PC)/~800MB(phone)). load now?"
+    //     );
+    //     if (answer) {
+    //       const timer = setInterval(() => {
+    //         setSubtitle(chat.initProgress || "webLLM loading");
+    //       }, 1000);
+    //       chat.init().then(() => {
+    //         clearInterval(timer);
+    //         if (chat.getInitStatus() === "done") setSubtitle("webLLM loaded");
+    //         else setSubtitle("webLLM error");
+    //       });
+    //     }
+    //     return;
+    //   } else if (chat.getInitStatus() === "working") {
+    //     alert("webLLM loading: " + chat.initProgress);
+    //     return;
+    //   }
+    // }
     if (firstTime) {
       if (model) {
         setSubtitle("");

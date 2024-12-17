@@ -43,7 +43,7 @@ export function loadModelTo(stage: RefObject<HTMLElement>, model: Live2DModel) {
   const bucketURL = 'https://storage.googleapis.com/song-testing-bucket-426522/'
     //Current handling for syncing and playing vocal and backing tracks together. 
     // @ts-ignore
-    model.internalModel.motionManager.on('motionStart', (index : string, group : string, audio :HTMLAudioElement ) => {
+    model.internalModel.motionManager.on('motionStart', (index : string, group : string, audio : HTMLAudioElement ) => {
   
       if(audio) {
         const match = audio.src.match(/(https:\/\/storage.googleapis.com\/song-testing-bucket-426522\/[^/]+\/\d+\/)(vocals.mp3)/);
