@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Live2DModel, InternalModel } from "pixi-live2d-display-lipsyncpatch";
 import { textToSpeechWeb, textToSpeechUseBackend } from "../models/tts/textToSpeech";
+import { Button } from "./ui/button";
 
 export default function Debug({
   model,
@@ -89,6 +90,9 @@ export default function Debug({
             >
               run CustomMotion
             </button>
+            <Button onClick={() => {
+              handleSpeak('https://storage.googleapis.com/song-testing-bucket-426522/LFoyXEFaz2Q/54/vocals.mp3', model)
+              }}>Cloud Speak</Button>
           </div>
         </div>
       )}

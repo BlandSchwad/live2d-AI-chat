@@ -40,18 +40,19 @@ export function loadModelTo(stage: RefObject<HTMLElement>, model: Live2DModel) {
   model.scale.set(Math.min(scaleX, scaleY) * 2);
   model.x = canvas.width / 2 - model.width / 2;
   model.y = canvas.height; // model is under the stage first
-
+  const bucketURL = 'https://storage.googleapis.com/song-testing-bucket-426522/'
     //Current handling for syncing and playing vocal and backing tracks together. 
     // @ts-ignore
     model.internalModel.motionManager.on('motionStart', (index : string, group : string, audio :HTMLAudioElement ) => {
   
       if(audio) {
-        const match = audio.src.match(/\/psql\/cover\/([^/]+)\/(backing|vocals)/);
+        const match = audio.src.match(/(https:\/\/storage.googleapis.com\/song-testing-bucket-426522\/[^/]+\/\d+\/)(vocals.mp3)/);
+        // const match = audio.src.match(/\/psql\/cover\/([^/]+)\/(backing|vocals)/);
         // console.log("match:", match[1])
         if (match) {
           SoundManager.audios[0].pause()
           SoundManager.audios[0].currentTime = 0
-          SoundManager.add(`http://localhost:8000/psql/cover/${match[1]}/backing`)
+          SoundManager.add(`${match[1]}backing.mp3`)
           console.log(SoundManager.audios)
   
           SoundManager.audios[1].addEventListener('canplaythrough', () => {
