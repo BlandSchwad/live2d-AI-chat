@@ -46,14 +46,18 @@ export function loadModelTo(stage: RefObject<HTMLElement>, model: Live2DModel) {
     model.internalModel.motionManager.on('motionStart', (index : string, group : string, audio : HTMLAudioElement ) => {
   
       if(audio) {
-        const match = audio.src.match(/(https:\/\/storage.googleapis.com\/song-testing-bucket-426522\/[^/]+\/\d+\/)(vocals.mp3)/);
-        // const match = audio.src.match(/\/psql\/cover\/([^/]+)\/(backing|vocals)/);
+        // const match = audio.src.match(/(https:\/\/storage.googleapis.com\/song-testing-bucket-426522\/[^/]+\/\d+\/)(vocals.mp3)/);
+        const match = audio.src.match(/\/psql\/cover\/([^/]+)\/(backing|vocals)/);
         // console.log("match:", match[1])
         if (match) {
+          
           SoundManager.audios[0].pause()
           SoundManager.audios[0].currentTime = 0
-          SoundManager.add(`${match[1]}backing.mp3`)
-          console.log(SoundManager.audios)
+          // SoundManager.add(`${match[1]}backing`)
+          SoundManager.add(`http://localhost:8000/psql/cover/${match[1]}/backing`)
+          // console.log(match)
+
+          // console.log(SoundManager.audios)
   
           SoundManager.audios[1].addEventListener('canplaythrough', () => {
             SoundManager.audios[0].play()
