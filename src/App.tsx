@@ -35,7 +35,8 @@ import {
 } from "./models/tts/textToSpeech.ts";
 // import CoverSong from './components/CoverSong.tsx'
 import { useChat } from "ai/react"
-// import SongList from "./components/songlist.tsx";
+import SongList from "./components/songlist.tsx";
+import { Button } from "./components/ui/button.tsx";
 
 export type contextType = {
   role: "user" | "assistant" | "system";
@@ -70,7 +71,6 @@ function App() {
     // },
   })
   const [model, setModel] = useState<Live2DModel | null>(null);
-  const [vocals, setVocals] = useState("")
   const [context, setContext] = useState<contextType[]>(defaultContext);
   const [subtitle, setSubtitle] = useState("");
   const [debugMode, setDebugMode] = useState(false);
@@ -83,6 +83,7 @@ function App() {
   const TTS = useRef<
     ((input: string, model?: string) => Promise<string>) | null
   >(null);
+  const vocalRef = useRef<HTMLAudioElement>(null);
 
   const [backendEndpoint] = useBackendEndpoint();
   const [useBackendLLM] = useUseBackendLLM();
@@ -93,7 +94,9 @@ function App() {
   const [openaiModelName] = useOpenaiModelName();
   const { listening, isMicrophoneAvailable, resetTranscript } =
     useSpeechRecognition();
-
+  // const [vocalElement, setVocalElement] = useState<HTMLElement | null>(null)
+  // const [backingElement, setBackingElement] = useState<HTMLElement | null>(null)
+  const [soundManagerAudios, setSoundManagerAudios] = useState<HTMLAudioElement[] | null>(null)
   const firstTime = context.length === defaultContext.length;
 
   // load chat engine
@@ -123,6 +126,7 @@ function App() {
     useWebLLM,
   ]);
 
+ 
   // load model when init
   useEffect(() => {
     (async () => {
@@ -150,6 +154,41 @@ function App() {
     // model.expression('翅膀');
     setSubtitle("-- touch anywhere to start --");
   }, [model]);
+
+   //Audio handling for singing
+   useEffect(() => {
+    if(!model) return
+    model.internalModel.motionManager.on('motionStart', (index : string, group : string, audio : HTMLAudioElement ) => {
+  
+      if(audio) {
+        // const match = audio.src.match(/(https:\/\/storage.googleapis.com\/song-testing-bucket-426522\/[^/]+\/\d+\/)(vocals.mp3)/);
+        const match = audio.src.match(/\/psql\/cover\/([^/]+)\/(backing|vocals)/);
+        // console.log("match:", match[1])
+        if (match) {
+          audio.id = 'vocals'
+          // audio.ref =
+          SoundManager.audios[0].pause()
+          console.log('Sound Manager Vocals:',SoundManager.audios[0])
+          setSoundManagerAudios(SoundManager.audios)
+          // setVocalElement(SoundManager.audios[0])
+          SoundManager.audios[0].currentTime = 0
+          // SoundManager.add(`${match[1]}backing`)
+          
+          let backing = SoundManager.add(`http://localhost:8000/psql/cover/${match[1]}/backing`)
+          backing.id='backing'
+          // console.log(match)
+
+          // console.log(SoundManager.audios)
+  
+          SoundManager.audios[1].addEventListener('canplaythrough', () => {
+            SoundManager.audios[0].play()
+            SoundManager.audios[1].play()
+  
+          })
+        }     
+      }
+    })
+  }, [model])
 
   // change subtitle by context
   useEffect(() => {
@@ -348,8 +387,28 @@ function App() {
         className="w-screen h-screen"
         ref={stage}
         id="canvas"
-      ></div>
+      >   </div>
+  {soundManagerAudios && soundManagerAudios.length > 1 && <>
+        <Button onClick={() => {soundManagerAudios[0].pause()}}>Pause</Button>
+        <Button onClick={() => { 
+          let time = soundManagerAudios[0].currentTime
+          soundManagerAudios[0].pause()
+          soundManagerAudios[1].pause()
+          soundManagerAudios[0].currentTime = time + 10
+          soundManagerAudios[1].currentTime = time + 10
+          soundManagerAudios[0].play()
+          soundManagerAudios[1].play()
 
+
+
+        }}>Fast Forward</Button>
+        <Button onClick={() => {
+          soundManagerAudios[0].pause()
+          soundManagerAudios[1].pause()
+          SoundManager.dispose(soundManagerAudios[0])
+          SoundManager.dispose(soundManagerAudios[0])          
+        }}>Stop</Button>
+      </>}
       <Dictaphones
         onSpeechRecognized={(text: string) => {
           setContext((context) => [
@@ -417,8 +476,10 @@ function App() {
         Songs
 
       </label>
-      {/* {showSongList && <SongList model={model} handleSpeak={handleSpeak}/>} */}
+      {showSongList && <SongList model={model} handleSpeak={handleSpeak}/>}
+   
       {/* <CoverSong/> */}
+      {/* <Button disabled={vocalEleemnt ? false : true} >dd</Button> */}
     </>
   );
 }
