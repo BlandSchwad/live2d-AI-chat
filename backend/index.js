@@ -57,6 +57,18 @@ app.post("/api/chat", async(req, res) => {
 
 })
 
+
+app.get('/api/covers', async(req, res) => {
+  let response = await fetch(`${process.env.COVER_SERVER}/psql/covers`)
+  if(!response.ok){
+    throw new Error('Error Contacting Song Server')
+  }
+  let data = await response.json()
+  // console.log(process.env.COVER_SERVER)
+  return res.send(data)
+})
+
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });

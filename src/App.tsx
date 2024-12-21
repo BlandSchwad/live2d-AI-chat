@@ -161,8 +161,8 @@ function App() {
     model.internalModel.motionManager.on('motionStart', (index : string, group : string, audio : HTMLAudioElement ) => {
   
       if(audio) {
-        // const match = audio.src.match(/(https:\/\/storage.googleapis.com\/song-testing-bucket-426522\/[^/]+\/\d+\/)(vocals.mp3)/);
-        const match = audio.src.match(/\/psql\/cover\/([^/]+)\/(backing|vocals)/);
+        const match = audio.src.match(/(https:\/\/storage.googleapis.com\/song-testing-bucket-426522\/[^/]+\/\d+\/)(vocals.mp3)/);
+        // const match = audio.src.match(/\/psql\/cover\/([^/]+)\/(backing|vocals)/);
         // console.log("match:", match[1])
         if (match) {
           audio.id = 'vocals'
@@ -174,7 +174,9 @@ function App() {
           SoundManager.audios[0].currentTime = 0
           // SoundManager.add(`${match[1]}backing`)
           
-          let backing = SoundManager.add(`http://localhost:8000/psql/cover/${match[1]}/backing`)
+          // let backing = SoundManager.add(`http://localhost:8000/psql/cover/${match[1]}/backing`)
+          let backing = SoundManager.add(`${match[1]}backing.mp3`)
+
           backing.id='backing'
           // console.log(match)
 
