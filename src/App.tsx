@@ -14,6 +14,7 @@ import {
   useOpenaiApikey,
   useOpenaiEndpoint,
   useOpenaiModelName,
+  usePlayerLoading,
   useUseBackendLLM,
   useUseBackendTTS,
   useUseWebLLM,
@@ -37,7 +38,9 @@ import {
 import { useChat } from "ai/react"
 import SongList from "./components/songlist.tsx";
 import { Button } from "./components/ui/button.tsx";
-
+import Player from "./components/Player.tsx";
+import WavesurferPlayer from "@wavesurfer/react";
+import CoverSong from "./components/CoverSong.tsx";
 export type contextType = {
   role: "user" | "assistant" | "system";
   content: string;
@@ -61,6 +64,7 @@ function addToContext(
   });
 }
 
+
 function App() {
   const {messages, input, handleInputChange, handleSubmit } = useChat({
     api: 'http://127.0.0.1:61234/api/chat',
@@ -70,6 +74,22 @@ function App() {
     //   console.log('Received HTTP response from server:', response);
     // },
   })
+  const handleSubmit2 = (e : Event) => {
+    if(!model) return
+    if (inputRef.current) {
+      e.preventDefault()
+    // console.log(inputRef.current.value)
+    // setInput('')
+    handleSubmit(e)
+    handleSpeechRecognized(inputRef.current.value)
+    // console.log('cleared:', inputRef.current?.value)
+
+    }
+    return
+    
+    
+
+  }
   const [model, setModel] = useState<Live2DModel | null>(null);
   const [context, setContext] = useState<contextType[]>(defaultContext);
   const [subtitle, setSubtitle] = useState("");
@@ -84,7 +104,7 @@ function App() {
     ((input: string, model?: string) => Promise<string>) | null
   >(null);
   const vocalRef = useRef<HTMLAudioElement>(null);
-
+  const inputRef = useRef<HTMLInputElement>(null)
   const [backendEndpoint] = useBackendEndpoint();
   const [useBackendLLM] = useUseBackendLLM();
   const [useBackendTTS] = useUseBackendTTS();
@@ -98,7 +118,7 @@ function App() {
   // const [backingElement, setBackingElement] = useState<HTMLElement | null>(null)
   const [soundManagerAudios, setSoundManagerAudios] = useState<HTMLAudioElement[] | null>(null)
   const firstTime = context.length === defaultContext.length;
-
+  const [loading, setPlayerLoading] = usePlayerLoading();
   // load chat engine
   useEffect(() => {
     setChat(
@@ -168,10 +188,10 @@ function App() {
           audio.id = 'vocals'
           // audio.ref =
           SoundManager.audios[0].pause()
-          console.log('Sound Manager Vocals:',SoundManager.audios[0])
+          SoundManager.audios[0].currentTime = 0
+          // console.log('Sound Manager Vocals:',SoundManager.audios[0])
           setSoundManagerAudios(SoundManager.audios)
           // setVocalElement(SoundManager.audios[0])
-          SoundManager.audios[0].currentTime = 0
           // SoundManager.add(`${match[1]}backing`)
           
           // let backing = SoundManager.add(`http://localhost:8000/psql/cover/${match[1]}/backing`)
@@ -183,6 +203,7 @@ function App() {
           // console.log(SoundManager.audios)
   
           SoundManager.audios[1].addEventListener('canplaythrough', () => {
+            setPlayerLoading(false)
             SoundManager.audios[0].play()
             SoundManager.audios[1].play()
   
@@ -247,7 +268,14 @@ function App() {
     }
     reader.stream = null;
   }
+  function onSeek(ws) {
+    // console.log(ws.media.currentTime)
+    if(soundManagerAudios[1] != null){
+      soundManagerAudios[1].currentTime = ws.media.currentTime
+    }
+    
 
+  }
   // when user speak break the ai speak
   async function handleUserSpeaking() {
     if (!model) return;
@@ -286,6 +314,7 @@ function App() {
       }
     ) {
       return new Promise<void>((resolve, reject) => {
+
         model
           .motion("Speak", undefined, MotionPriority.FORCE)
           .catch((e) => console.error(e));
@@ -296,6 +325,7 @@ function App() {
           onFinish: () => {
             console.log("model stop speak");
             model.motion("Idle").catch((e) => console.error(e));
+            setSoundManagerAudios([])
             resolve(); // 成功时解析 Promise
           },
           onError: (err) => {
@@ -338,27 +368,27 @@ function App() {
 
   // user click screen
   function handleClickScreen() {
-    // if (chat instanceof LLMChatWebLLM) {
-    //   if (chat.getInitStatus() === "not start") {
-    //     const answer = confirm(
-    //       "webLLM need to load every time, first time need some time to download model(~1.5G(PC)/~800MB(phone)). load now?"
-    //     );
-    //     if (answer) {
-    //       const timer = setInterval(() => {
-    //         setSubtitle(chat.initProgress || "webLLM loading");
-    //       }, 1000);
-    //       chat.init().then(() => {
-    //         clearInterval(timer);
-    //         if (chat.getInitStatus() === "done") setSubtitle("webLLM loaded");
-    //         else setSubtitle("webLLM error");
-    //       });
-    //     }
-    //     return;
-    //   } else if (chat.getInitStatus() === "working") {
-    //     alert("webLLM loading: " + chat.initProgress);
-    //     return;
-    //   }
-    // }
+    if (chat instanceof LLMChatWebLLM) {
+      if (chat.getInitStatus() === "not start") {
+        const answer = confirm(
+          "webLLM need to load every time, first time need some time to download model(~1.5G(PC)/~800MB(phone)). load now?"
+        );
+        if (answer) {
+          const timer = setInterval(() => {
+            setSubtitle(chat.initProgress || "webLLM loading");
+          }, 1000);
+          chat.init().then(() => {
+            clearInterval(timer);
+            if (chat.getInitStatus() === "done") setSubtitle("webLLM loaded");
+            else setSubtitle("webLLM error");
+          });
+        }
+        return;
+      } else if (chat.getInitStatus() === "working") {
+        alert("webLLM loading: " + chat.initProgress);
+        return;
+      }
+    }
     if (firstTime) {
       if (model) {
         setSubtitle("");
@@ -381,7 +411,6 @@ function App() {
   return (
     <>
       {!isMicrophoneAvailable && <div>❗Microphone not available❗</div>}
-
       <div
         onClick={() => {
           handleClickScreen();
@@ -390,7 +419,16 @@ function App() {
         ref={stage}
         id="canvas"
       >   </div>
-  {soundManagerAudios && soundManagerAudios.length > 1 && <>
+      {soundManagerAudios && soundManagerAudios.length > 1 &&
+        // <Player vocals={soundManagerAudios[0]} backing={soundManagerAudios[1]}/>
+        <WavesurferPlayer 
+          height={100}
+          waveColor={"cyan"}
+          onSeeking={onSeek}
+          media={soundManagerAudios[0]}
+          barWidth={2} />
+      }
+  {/* {soundManagerAudios && soundManagerAudios.length > 1 && <>
         <Button onClick={() => {soundManagerAudios[0].pause()}}>Pause</Button>
         <Button onClick={() => { 
           let time = soundManagerAudios[0].currentTime
@@ -410,7 +448,7 @@ function App() {
           SoundManager.dispose(soundManagerAudios[0])
           SoundManager.dispose(soundManagerAudios[0])          
         }}>Stop</Button>
-      </>}
+      </>} */}
       <Dictaphones
         onSpeechRecognized={(text: string) => {
           setContext((context) => [
@@ -423,6 +461,7 @@ function App() {
           handleUserSpeaking();
         }}
       />
+      {loading ? <div>Loading</div> : <div>Not Loading</div>}
 
       {/* Setting */}
       <label>
@@ -464,8 +503,8 @@ function App() {
               </div>
             ))}
       
-            <form onSubmit={handleSubmit}>
-              <input name="prompt" value={input} onChange={handleInputChange} />
+            <form onSubmit={handleSubmit2}>
+              <input ref={inputRef} name="prompt" value={input} onChange={handleInputChange} />
               <button type="submit">Submit</button>            
             </form>
           </>
@@ -480,7 +519,7 @@ function App() {
       </label>
       {showSongList && <SongList model={model} handleSpeak={handleSpeak}/>}
    
-      {/* <CoverSong/> */}
+      <CoverSong/>
       {/* <Button disabled={vocalEleemnt ? false : true} >dd</Button> */}
     </>
   );
