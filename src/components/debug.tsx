@@ -20,6 +20,8 @@ export default function Debug({
               className="bg-gray-200 rounded-sm"
               onClick={async () => {
                 const data = await textToSpeechWeb("hello word", "tts");
+                
+               
                 handleSpeak(data, model);
               }}
             >

@@ -63,6 +63,28 @@ function addToContext(
     return [...context.slice(0, context.length - 1), lastContent];
   });
 }
+function isBase64Wav(str : String) {
+  return /^data:audio\/wav;base64,(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(str);
+}
+
+function base64ToBlobUrl(base64String : String, mimeType = "audio/wav") {
+  // Remove the "data:audio/mp3;base64," part if present
+  let base64Data = base64String.replace(/^data:audio\/wav;base64,/, "");
+
+  // Convert Base64 to binary data
+  let byteCharacters = atob(base64Data);
+  let byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  let byteArray = new Uint8Array(byteNumbers);
+
+  // Create a Blob from the binary data
+  let blob = new Blob([byteArray], { type: mimeType });
+
+  // Generate a Blob URL
+  return URL.createObjectURL(blob);
+}
 
 
 function App() {
@@ -74,20 +96,19 @@ function App() {
     //   console.log('Received HTTP response from server:', response);
     // },
   })
-  const handleSubmit2 = (e : Event) => {
-    if(!model) return
+  function handleSubmit2(e: Event) {
+    if (!model) return;
     if (inputRef.current) {
-      e.preventDefault()
-    // console.log(inputRef.current.value)
-    // setInput('')
-    handleSubmit(e)
-    handleSpeechRecognized(inputRef.current.value)
-    // console.log('cleared:', inputRef.current?.value)
-
+      e.preventDefault();
+      // console.log(inputRef.current.value)
+      // setInput('')
+      handleSubmit(e);
+      handleSpeechRecognized(inputRef.current.value);
+      // console.log('cleared:', inputRef.current?.value)
     }
-    return
-    
-    
+    return;
+
+
 
   }
   const [model, setModel] = useState<Live2DModel | null>(null);
@@ -179,7 +200,7 @@ function App() {
    useEffect(() => {
     if(!model) return
     model.internalModel.motionManager.on('motionStart', (index : string, group : string, audio : HTMLAudioElement ) => {
-  
+      console.log(`Motion Start!\n index: ${index} ${audio ? `Audio ${audio}` : '' }`)
       if(audio) {
         const match = audio.src.match(/(https:\/\/storage.googleapis.com\/song-testing-bucket-426522\/[^/]+\/\d+\/)(vocals.mp3)/);
         // const match = audio.src.match(/\/psql\/cover\/([^/]+)\/(backing|vocals)/);
@@ -270,7 +291,7 @@ function App() {
   }
   function onSeek(ws) {
     // console.log(ws.media.currentTime)
-    if(soundManagerAudios[1] != null){
+    if(soundManagerAudios && soundManagerAudios[0] != null){
       soundManagerAudios[1].currentTime = ws.media.currentTime
     }
     
@@ -293,6 +314,8 @@ function App() {
     if (model === null || model === undefined) {
       return;
     }
+    
+    
 
     const volume = .2; // 声音大小 [可选参数，可以为null或空][0.0-1.0]
     const expression = undefined; // 模型表情 [可选参数，可以为null或空] [index | expression表情名称]
@@ -349,6 +372,10 @@ function App() {
         //   },
         // });
       });
+    }
+    if (isBase64Wav(audio_link)){
+      audio_link = base64ToBlobUrl (audio_link)
+      // console.log(`Converted url: ${base64ToBlobUrl(audio_link, 'mp3')}`)   
     }
 
     await speakWithPromise(audio_link, {
@@ -419,7 +446,9 @@ function App() {
         ref={stage}
         id="canvas"
       >   </div>
-      {soundManagerAudios && soundManagerAudios.length > 1 &&
+       {loading ? <div>Loading</div> : <div>Not Loading</div>}
+
+      {soundManagerAudios && soundManagerAudios.length > 1 && 
         // <Player vocals={soundManagerAudios[0]} backing={soundManagerAudios[1]}/>
         <WavesurferPlayer 
           height={100}
@@ -461,8 +490,7 @@ function App() {
           handleUserSpeaking();
         }}
       />
-      {loading ? <div>Loading</div> : <div>Not Loading</div>}
-
+     
       {/* Setting */}
       <label>
         <input
@@ -496,16 +524,16 @@ function App() {
       </label>
       {showContext && (
             <>
-            {messages.map(message => (
+            {context.map(message => (
               <div key={message.id}>
-                {message.role === 'user' ? 'User: ' : 'AI: '}
+                {`${message.role} :`}
                 {message.content}
               </div>
             ))}
       
             <form onSubmit={handleSubmit2}>
               <input ref={inputRef} name="prompt" value={input} onChange={handleInputChange} />
-              <button type="submit">Submit</button>            
+              <Button type="submit">Submit</Button>            
             </form>
           </>
       )}
