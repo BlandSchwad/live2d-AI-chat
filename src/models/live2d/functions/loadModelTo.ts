@@ -19,6 +19,8 @@ export function loadModelTo(stage: RefObject<HTMLElement>, model: Live2DModel) {
     view: canvas,
     width: stage.current.clientWidth,
     height: stage.current.clientHeight,
+    backgroundColor: "#0e5a6b",
+    backgroundAlpha: 0.0,    
   });
   if (app.renderer?.view?.style?.touchAction) {
     app.renderer.view.style.touchAction = "auto";
