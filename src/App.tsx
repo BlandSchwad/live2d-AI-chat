@@ -489,9 +489,9 @@ function App() {
         <Button onClick={() => {
           soundManagerAudios[0].pause()
           soundManagerAudios[1].pause()
-          setSoundManagerAudios([])
           SoundManager.dispose(soundManagerAudios[1])
           SoundManager.dispose(soundManagerAudios[0])      
+          setSoundManagerAudios([])
         }}>Stop</Button>
       </>}
       <Dictaphones
