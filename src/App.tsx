@@ -41,6 +41,7 @@ import { Button } from "./components/ui/button.tsx";
 import Player from "./components/Player.tsx";
 import WavesurferPlayer from "@wavesurfer/react";
 import CoverSong from "./components/CoverSong.tsx";
+import { Switch } from "./components/ui/switch.tsx";
 export type contextType = {
   role: "user" | "assistant" | "system";
   content: string;
@@ -446,7 +447,7 @@ function App() {
         ref={stage}
         id="canvas"
       >   </div>
-       {loading ? <div>Loading</div> : <div>Not Loading</div>}
+       {/* {loading ? <div>Loading</div> : <div>Not Loading</div>} */}
 
       {soundManagerAudios && soundManagerAudios.length > 1 && 
         // <Player vocals={soundManagerAudios[0]} backing={soundManagerAudios[1]}/>
@@ -457,8 +458,11 @@ function App() {
           media={soundManagerAudios[0]}
           barWidth={2} />
       }
-  {/* {soundManagerAudios && soundManagerAudios.length > 1 && <>
-        <Button onClick={() => {soundManagerAudios[0].pause()}}>Pause</Button>
+  {soundManagerAudios && soundManagerAudios.length > 1 && <>
+        <Button onClick={() => {
+          soundManagerAudios[0].pause()
+          soundManagerAudios[1].pause()
+          }}>Pause</Button>
         <Button onClick={() => { 
           let time = soundManagerAudios[0].currentTime
           soundManagerAudios[0].pause()
@@ -474,10 +478,11 @@ function App() {
         <Button onClick={() => {
           soundManagerAudios[0].pause()
           soundManagerAudios[1].pause()
-          SoundManager.dispose(soundManagerAudios[0])
-          SoundManager.dispose(soundManagerAudios[0])          
+          setSoundManagerAudios([])
+          SoundManager.dispose(soundManagerAudios[1])
+          SoundManager.dispose(soundManagerAudios[0])      
         }}>Stop</Button>
-      </>} */}
+      </>}
       <Dictaphones
         onSpeechRecognized={(text: string) => {
           setContext((context) => [
@@ -493,35 +498,35 @@ function App() {
      
       {/* Setting */}
       <label>
-        <input
-          type="checkbox"
-          checked={showSetting}
-          onChange={(e) => setShowSetting(e.target.checked)}
-        />
-        ShowSetting
+      <Switch checked={showSetting} onCheckedChange={() => {setShowSetting(!showSetting)}}/>
+   
+        Settings
       </label>
-      {showSetting && <Setting />}
+      
 
       {/* Debug */}
       <label>
-        <input
-          type="checkbox"
-          checked={debugMode}
-          onChange={(e) => setDebugMode(e.target.checked)}
-        />
+        <Switch checked={debugMode} onCheckedChange={() => setDebugMode(!debugMode)}/>
+   
         Debug
       </label>
-      {debugMode && <Debug model={model} handleSpeak={handleSpeak} />}
+      
 
       {/* Show context log */}
       <label>
-        <input
-          type="checkbox"
-          checked={showContext}
-          onChange={(e) => setShowContext(e.target.checked)}
-        />
+        <Switch checked={showContext} onCheckedChange={() => {setShowContext(!showContext)}}/>
+     
         Chat
       </label>
+      
+      <label>
+      <Switch checked={showSongList} onCheckedChange={() => {setShowSongList(!showSongList)}}/>
+        
+        Songs
+
+      </label>
+      {showSetting && <Setting />}
+      {debugMode && <Debug model={model} handleSpeak={handleSpeak} />}
       {showContext && (
             <>
             {context.map(message => (
@@ -537,18 +542,10 @@ function App() {
             </form>
           </>
       )}
-      <label>
-        <input type="checkbox" checked={showSongList}
-        onChange={(e) => {setShowSongList(e.target.checked)}}
-         
-         />
-        Songs
-
-      </label>
       {showSongList && <SongList model={model} handleSpeak={handleSpeak}/>}
-   
-      <CoverSong/>
-      {/* <Button disabled={vocalEleemnt ? false : true} >dd</Button> */}
+{/*    
+      <CoverSong/> */}
+    
     </>
   );
 }
