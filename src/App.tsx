@@ -38,9 +38,9 @@ import {
 import { useChat } from "ai/react"
 import SongList from "./components/songlist.tsx";
 import { Button } from "./components/ui/button.tsx";
-import Player from "./components/Player.tsx";
 import WavesurferPlayer from "@wavesurfer/react";
-import CoverSong from "./components/CoverSong.tsx";
+// import CoverSong from "./components/CoverSong.tsx";
+import { ChatForm } from "./components/chatform.tsx";
 import { Switch } from "./components/ui/switch.tsx";
 export type contextType = {
   role: "user" | "assistant" | "system";
@@ -110,6 +110,15 @@ function App() {
     return;
 
 
+
+  }
+
+  function handleChatSubmit(text: string) {
+    setContext((context) => [
+      ...context,
+      { role: "user", content: text },
+    ]);
+    handleSpeechRecognized(text)
 
   }
   const [model, setModel] = useState<Live2DModel | null>(null);
@@ -249,7 +258,7 @@ function App() {
   async function handleSpeechRecognized(text: string) {
     const newContext: contextType[] = [
       ...context,
-      { role: "user", content: promptHint + text },
+      { role: "user", content: text },
     ];
     userSpeaking = false;
     if (!model || !chat) return;
@@ -443,10 +452,12 @@ function App() {
         onClick={() => {
           handleClickScreen();
         }}
-        className="w-screen h-screen"
+        className="flex flex-col-reverse l w-full h-screen"
         ref={stage}
         id="canvas"
-      >   </div>
+      >  
+            <ChatForm handleSubmit={handleChatSubmit}/>
+       </div>
        {/* {loading ? <div>Loading</div> : <div>Not Loading</div>} */}
 
       {soundManagerAudios && soundManagerAudios.length > 1 && 
@@ -536,15 +547,16 @@ function App() {
               </div>
             ))}
       
-            <form onSubmit={handleSubmit2}>
+            {/* <form onSubmit={handleSubmit2}>
               <input ref={inputRef} name="prompt" value={input} onChange={handleInputChange} />
               <Button type="submit">Submit</Button>            
-            </form>
+            </form> */}
           </>
       )}
       {showSongList && <SongList model={model} handleSpeak={handleSpeak}/>}
 {/*    
       <CoverSong/> */}
+            {/* <ChatForm handleSubmit={handleChatSubmit}/> */}
     
     </>
   );
