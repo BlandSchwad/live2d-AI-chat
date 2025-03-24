@@ -1,3 +1,4 @@
+import { Live2DModel } from "pixi-live2d-display-lipsyncpatch";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
@@ -42,6 +43,18 @@ const useAppStore = create<AppStore>()(
   )
 );
 
+type ModelStore = {
+  model: Live2DModel | null
+  setModel: (model: Live2DModel | null) => void;
+}
+
+const useModelStore = create<ModelStore>() (
+    (set, get) => ({
+      model: null,
+      setModel: (model: Live2DModel | null) => set({model})
+
+    })
+)
 type PlayerStore = {
   loading: boolean
   setPlayerLoading:  (setUseLoading: boolean) => void;
@@ -86,6 +99,16 @@ export const useSongAudio = (): [
 ] => usePlayerStore(
   useShallow((state) => [state.songAudio, state.setSongAudio])
 )
+
+
+export const useLive2DModel = (): [
+  Live2DModel | null, 
+  (model: Live2DModel | null) => void
+] => useModelStore( 
+  useShallow((state) => [state.model, state.setModel])
+  
+)
+
 
 export const useBackendEndpoint = (): [
   string,

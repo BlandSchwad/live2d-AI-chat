@@ -3,6 +3,7 @@ import { Live2DModel, InternalModel } from "pixi-live2d-display-lipsyncpatch";
 import { Button } from "./ui/button";
 import { usePlayerLoading } from "@/models/appstore";
 
+
 export default function SongList({handleSpeak, model} : {handleSpeak: (audio_link: string, model: Live2DModel) => Promise<void>,  model: Live2DModel<InternalModel> | null}) {
     const [songs, setSongs] = useState([])
     const [loading, setPlayerLoading] = usePlayerLoading();
@@ -26,21 +27,23 @@ export default function SongList({handleSpeak, model} : {handleSpeak: (audio_lin
 
     return(
         <>
-            {songs[0] && songs.map(song => {
+            {songs[0] && songs.map((song, index) => {
               let title = song['status_message']
-              let index = title.lastIndexOf('\\')
+              let slashIndex = title.lastIndexOf('\\')
               if(song.output_url != null) {
                 return (
                   
-                        <div key={song.id}> {title.slice(index + 1 )}
-                          <Button onClick={() => {
+                        <div key={`cover-${index}`}> {title.slice(slashIndex + 1 )}
+                          <Button 
+                          onClick={() => {
                             setPlayerLoading(true)
                             if(song.output_url != 'pending') handleSpeak(`${song.output_url}/vocals.mp3`, model);
                             // handleSpeak()
 
 
 
-                          }}>Play</Button>
+                          }}>
+                            Play</Button>
                             {/* <button onClick={async () => {
                               // handleLoadState(true)
                               handleSpeak(`http://localhost:8000/psql/cover/${song.id}/vocals`, model)

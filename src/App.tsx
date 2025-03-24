@@ -1,6 +1,7 @@
 import "regenerator-runtime/runtime"; // https://github.com/JamesBrill/react-speech-recognition/issues/110#issuecomment-1898624289
 import { useEffect, useRef, useState } from "react";
 import { Live2DModel, MotionPriority, SoundManager } from "pixi-live2d-display-lipsyncpatch";
+
 import LLMChatOpenAI from "./models/llm/LLMChatOpenAI.ts";
 import { addOrChangeSubtitle } from "./models/live2d/functions/subtitle.ts";
 import loadModel from "./models/live2d/functions/loadModel";
@@ -18,6 +19,7 @@ import {
   useUseBackendLLM,
   useUseBackendTTS,
   useUseWebLLM,
+  useLive2DModel
 } from "./models/appstore.ts";
 import Debug from "./components/debug.tsx";
 import Dictaphones, {
@@ -34,12 +36,11 @@ import {
   textToSpeechUseBackend,
   textToSpeechWeb,
 } from "./models/tts/textToSpeech.ts";
-// import CoverSong from './components/CoverSong.tsx'
+import CoverSong from './components/CoverSong.tsx'
 import { useChat } from "ai/react"
 import SongList from "./components/songlist.tsx";
 import { Button } from "./components/ui/button.tsx";
 import WavesurferPlayer from "@wavesurfer/react";
-// import CoverSong from "./components/CoverSong.tsx";
 import { ChatForm } from "./components/chatform.tsx";
 import { Switch } from "./components/ui/switch.tsx";
 export type contextType = {
@@ -64,7 +65,7 @@ function addToContext(
     return [...context.slice(0, context.length - 1), lastContent];
   });
 }
-function isBase64Wav(str : String) {
+function isBase64Wav(str : string) {
   return /^data:audio\/wav;base64,(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(str);
 }
 
@@ -87,32 +88,9 @@ function base64ToBlobUrl(base64String : String, mimeType = "audio/wav") {
   return URL.createObjectURL(blob);
 }
 
-
 function App() {
-  const {messages, input, handleInputChange, handleSubmit } = useChat({
-    api: 'http://127.0.0.1:61234/api/chat',
-    // streamProtocol: 'data',
-    // onResponse: response => {
-    //   console.log(response.body)
-    //   console.log('Received HTTP response from server:', response);
-    // },
-  })
-  function handleSubmit2(e: Event) {
-    if (!model) return;
-    if (inputRef.current) {
-      e.preventDefault();
-      // console.log(inputRef.current.value)
-      // setInput('')
-      handleSubmit(e);
-      handleSpeechRecognized(inputRef.current.value);
-      // console.log('cleared:', inputRef.current?.value)
-    }
-    return;
-
-
-
-  }
-
+  
+  
   function handleChatSubmit(text: string) {
     setContext((context) => [
       ...context,
@@ -121,6 +99,7 @@ function App() {
     handleSpeechRecognized(text)
 
   }
+  const [model2, setModel2] = useLive2DModel();
   const [model, setModel] = useState<Live2DModel | null>(null);
   const [context, setContext] = useState<contextType[]>(defaultContext);
   const [subtitle, setSubtitle] = useState("");
@@ -181,7 +160,8 @@ function App() {
   // load model when init
   useEffect(() => {
     (async () => {
-      setModel(await loadModel())
+      // setModel(await loadModel())
+      setModel2(await loadModel())
     })();
   }, []);
 
@@ -189,27 +169,28 @@ function App() {
   
   // when model loaded, put it to stage
   useEffect(() => {
-    if (!model) return;
-    return loadModelTo(stage, model);
-  }, [model]);
+    if (!model2) return;
+    return loadModelTo(stage, model2);
+  }, [model2]);
 
   // auto wink
   useEffect(() => {
-    if (!model) return;
-    return autoWink(model);
-  }, [model]);
+    if (!model2) return;
+    return autoWink(model2);
+  }, [model2]);
 
   // init expression
   useEffect(() => {
-    if (!model) return;
-    // model.expression('翅膀');
+    if (!model2) return;
+    // model2.expression('翅膀');
     setSubtitle("-- touch anywhere to start --");
-  }, [model]);
+  }, [model2]);
 
    //Audio handling for singing
    useEffect(() => {
-    if(!model) return
-    model.internalModel.motionManager.on('motionStart', (index : string, group : string, audio : HTMLAudioElement ) => {
+    if(!model2) return
+    //@ts-ignore
+    model2.internalModel.motionManager.on('motionStart', (index : string, group : string, audio : HTMLAudioElement ) => {
       console.log(`Motion Start!\n index: ${index} ${audio ? `Audio ${audio}` : '' }`)
       if(audio) {
         const match = audio.src.match(/(https:\/\/storage.googleapis.com\/song-testing-bucket-426522\/[^/]+\/\d+\/)(vocals.mp3)/);
@@ -242,7 +223,7 @@ function App() {
         }     
       }
     })
-  }, [model])
+  }, [model2])
 
   // change subtitle by context
   useEffect(() => {
@@ -260,45 +241,127 @@ function App() {
       ...context,
       { role: "user", content: text },
     ];
+    const wrap = JSON.stringify({"messages": newContext})
     userSpeaking = false;
-    if (!model || !chat) return;
-    const { stream, interruptGenerate } = await chat.ask(newContext);
-    reader.stream = stream;
-    reader.interruptGenerate = interruptGenerate;
+    if (!model2 || !chat) return;
+    const myHeaders = new Headers();
+myHeaders.append("Content-Type", "application/json");
+    // const { stream, interruptGenerate } = await chat.ask(newContext);
+    
+    let res = await fetch('http://127.0.0.1:61234/api/derp', {method: "POST", body: wrap, headers: myHeaders }) 
+    const reader = res.body?.getReader()
+    const decoder = new TextDecoder()
+    let curSen = ""
+    let buffer = ''
+
     setContext((context) => [...context, { role: "assistant", content: "" }]);
-    let currentSentence = "";
-    for await (const chunk of reader.stream) {
-      const llmResponse = chunk.choices[0]?.delta?.content;
-      if (userSpeaking) {
-        currentSentence = "";
-        reader.stream = null;
-        break;
-      }
-      if (!llmResponse) continue;
-      currentSentence += llmResponse;
-      if (/[.,!?]$/.test(currentSentence)) {
-        addToContext(currentSentence, setContext);
-        console.log(TTS);
-        if (!TTS.current) {
-          alert("please wait for init");
-          return;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, {stream:true});
+      buffer += decoder.decode(value, {stream:true})
+      const events = buffer.split("\n\n")
+      buffer = events.pop() || ''
+
+
+      for (const event of events) {
+        const [eventTypeLine, dataLine] = event.split("\n")
+        const eventType = eventTypeLine.replace("event: ", "").trim()
+        const data = JSON.parse(dataLine.replace("data: ", "") || "{}")
+        if(eventType === "tool_call") {
+          console.log(`TOOL CALL: ${JSON.stringify(data)}`)
+          handleToolCall(data.name, data.args)
+        } else if(eventType === 'content') {
+          console.log(`${JSON.stringify(data.content)}`)
+          curSen +=data.content
+          if(/[.,!?]$/.test(curSen))
+            {
+              addToContext(curSen, setContext)
+              console.log(TTS)
+              if(!TTS.current) {
+                alert("please wait for init");
+                return;
+              }
+              const data = await TTS.current(curSen, "tts")
+              await(handleSpeak(data,model2))
+              console.log(curSen)
+              curSen = ""
+            }
         }
-        const data = await TTS.current(currentSentence, "tts");
-        await handleSpeak(data, model);
-        currentSentence = "";
       }
+
+      
+      // console.log(curSen);
+      //handle tool call?
+      
+      
+      //handle speech
+
+      // curSen += chunk
+      // if(/[.,!?]$/.test(curSen))
+      //   {
+      //     addToContext(curSen, setContext)
+      //     console.log(TTS)
+      //     if(!TTS.current) {
+      //       alert("please wait for init");
+      //       return;
+      //     }
+      //     const data = await TTS.current(curSen, "tts")
+      //     await(handleSpeak(data,model2))
+      //     console.log(curSen)
+      //     curSen = ""
+      //   }
+        
     }
-    if (reader.stream && currentSentence !== "") {
-      addToContext(currentSentence, setContext);
+    if (curSen !== "") {
+      addToContext(curSen, setContext);
       if (!TTS.current) {
         alert("please wait for init");
         return;
       }
-      const data = await TTS.current(currentSentence, "tts");
-      await handleSpeak(data, model);
+      const data = await TTS.current(curSen, "tts");
+      await handleSpeak(data, model2);
+      console.log(curSen)
     }
-    reader.stream = null;
+   
+    // reader.stream = res.body
+    // reader.stream = stream;
+    // reader.interruptGenerate = interruptGenerate;
+    // setContext((context) => [...context, { role: "assistant", content: "" }]);
+    // let currentSentence = "";
+    // for await (const chunk of reader.stream) {
+    //   const llmResponse = chunk.choices[0]?.delta?.content;
+    //   if (userSpeaking) {
+    //     currentSentence = "";
+    //     reader.stream = null;
+    //     break;
+    //   }
+    //   if (!llmResponse) continue;
+    //   currentSentence += llmResponse;
+    //   if (/[.,!?]$/.test(currentSentence)) {
+    //     addToContext(currentSentence, setContext);
+    //     console.log(TTS);
+    //     if (!TTS.current) {
+    //       alert("please wait for init");
+    //       return;
+    //     }
+    //     const data = await TTS.current(currentSentence, "tts");
+    //     await handleSpeak(data, model2);
+    //     currentSentence = "";
+    //   }
+    // }
+    // if (reader.stream && currentSentence !== "") {
+    //   addToContext(currentSentence, setContext);
+    //   if (!TTS.current) {
+    //     alert("please wait for init");
+    //     return;
+    //   }
+    //   const data = await TTS.current(currentSentence, "tts");
+    //   await handleSpeak(data, model2);
+    // }
+    // reader.stream = null;
   }
+  //@ts-ignore
   function onSeek(ws) {
     // console.log(ws.media.currentTime)
     if(soundManagerAudios && soundManagerAudios[0] != null){
@@ -309,9 +372,9 @@ function App() {
   }
   // when user speak break the ai speak
   async function handleUserSpeaking() {
-    if (!model) return;
+    if (!model2) return;
     userSpeaking = true;
-    model.stopSpeaking();
+    model2.stopSpeaking();
     if (reader.stream) {
       addToContext("[break by user]", setContext);
       if (reader.interruptGenerate) reader.interruptGenerate();
@@ -320,8 +383,8 @@ function App() {
   }
 
   // ai speak
-  async function handleSpeak(audio_link: string, model: Live2DModel) {
-    if (model === null || model === undefined) {
+  async function handleSpeak(audio_link: string, model2: Live2DModel) {
+    if (model2 === null || model2 === undefined) {
       return;
     }
     
@@ -348,16 +411,16 @@ function App() {
     ) {
       return new Promise<void>((resolve, reject) => {
 
-        model
+        model2
           .motion("Speak", undefined, MotionPriority.FORCE)
           .catch((e) => console.error(e));
-        model.motion("Speak", undefined, MotionPriority.FORCE, {sound: audio_link, volume: volume,
+        model2.motion("Speak", undefined, MotionPriority.FORCE, {sound: audio_link, volume: volume,
           expression: expression,
           resetExpression: resetExpression,
           crossOrigin: crossOrigin, 
           onFinish: () => {
-            console.log("model stop speak");
-            model.motion("Idle").catch((e) => console.error(e));
+            console.log("model2 stop speak");
+            model2.motion("Idle").catch((e) => console.error(e));
             setSoundManagerAudios([])
             resolve(); // 成功时解析 Promise
           },
@@ -403,6 +466,14 @@ function App() {
     // });
   }
 
+  function handleToolCall(name :string , args : object) {
+    if(!model2) return
+    if(name === 'sing') {
+      handleSpeak( 'https://storage.googleapis.com/song-testing-bucket-426522/BKZqGJONH68/93/vocals.mp3', model2)
+    }
+  
+  }
+  
   // user click screen
   function handleClickScreen() {
     if (chat instanceof LLMChatWebLLM) {
@@ -427,9 +498,9 @@ function App() {
       }
     }
     if (firstTime) {
-      if (model) {
+      if (model2) {
         setSubtitle("");
-        modelShowsUp(model);
+        modelShowsUp(model2);
         // handleSpeechRecognized(findTopic());
       }
     } else {
@@ -447,20 +518,17 @@ function App() {
 
   return (
     <>
-      {!isMicrophoneAvailable && <div>❗Microphone not available❗</div>}
+    <div className="flex flex-col w-full h-full">
       <div
         onClick={() => {
           handleClickScreen();
         }}
-        className="flex flex-col-reverse l w-full h-screen"
+        className="w-full h-full
+"
         ref={stage}
         id="canvas"
-      >  
-            <ChatForm handleSubmit={handleChatSubmit}/>
-       </div>
-       {/* {loading ? <div>Loading</div> : <div>Not Loading</div>} */}
-
-      {soundManagerAudios && soundManagerAudios.length > 1 && 
+      > 
+       {soundManagerAudios && soundManagerAudios.length > 1 && 
         // <Player vocals={soundManagerAudios[0]} backing={soundManagerAudios[1]}/>
         <WavesurferPlayer 
           height={100}
@@ -469,94 +537,31 @@ function App() {
           media={soundManagerAudios[0]}
           barWidth={2} />
       }
-  {soundManagerAudios && soundManagerAudios.length > 1 && <>
-        <Button onClick={() => {
-          soundManagerAudios[0].pause()
-          soundManagerAudios[1].pause()
-          }}>Pause</Button>
-        <Button onClick={() => { 
-          let time = soundManagerAudios[0].currentTime
-          soundManagerAudios[0].pause()
-          soundManagerAudios[1].pause()
-          soundManagerAudios[0].currentTime = time + 10
-          soundManagerAudios[1].currentTime = time + 10
-          soundManagerAudios[0].play()
-          soundManagerAudios[1].play()
+       </div>
+      <div className="flex flex-row">
+       <div className="flex-1" id="chatForm">
+          <ChatForm handleSubmit={handleChatSubmit}/>
+        </div>
+        <div className="flex flex-col overflow-y-auto h-64">
+          <SongList model={model2} handleSpeak={handleSpeak}/>
 
 
+        </div>
+        {/* <Button onClick={async () => {
+          console.log("click")
+            let response = await fetch('http://127.0.0.1:61234/api/covers')
+            if(!response.ok) {
+              throw new Error (`Error fetching song list`)
+            }
+            const data = await response.json()
+            console.log(data)
 
-        }}>Fast Forward</Button>
-        <Button onClick={() => {
-          soundManagerAudios[0].pause()
-          soundManagerAudios[1].pause()
-          SoundManager.dispose(soundManagerAudios[1])
-          SoundManager.dispose(soundManagerAudios[0])      
-          setSoundManagerAudios([])
-        }}>Stop</Button>
-      </>}
-      <Dictaphones
-        onSpeechRecognized={(text: string) => {
-          setContext((context) => [
-            ...context,
-            { role: "user", content: text },
-          ]);
-          handleSpeechRecognized(text);
-        }}
-        onUserSpeaking={(text: string) => {
-          handleUserSpeaking();
-        }}
-      />
+        }}>Covers</Button> */}
+      </div>
+      
+       
+    </div> 
      
-      {/* Setting */}
-      <label>
-      <Switch checked={showSetting} onCheckedChange={() => {setShowSetting(!showSetting)}}/>
-   
-        Settings
-      </label>
-      
-
-      {/* Debug */}
-      <label>
-        <Switch checked={debugMode} onCheckedChange={() => setDebugMode(!debugMode)}/>
-   
-        Debug
-      </label>
-      
-
-      {/* Show context log */}
-      <label>
-        <Switch checked={showContext} onCheckedChange={() => {setShowContext(!showContext)}}/>
-     
-        Chat
-      </label>
-      
-      <label>
-      <Switch checked={showSongList} onCheckedChange={() => {setShowSongList(!showSongList)}}/>
-        
-        Songs
-
-      </label>
-      {showSetting && <Setting />}
-      {debugMode && <Debug model={model} handleSpeak={handleSpeak} />}
-      {showContext && (
-            <>
-            {context.map(message => (
-              <div key={message.id}>
-                {`${message.role} :`}
-                {message.content}
-              </div>
-            ))}
-      
-            {/* <form onSubmit={handleSubmit2}>
-              <input ref={inputRef} name="prompt" value={input} onChange={handleInputChange} />
-              <Button type="submit">Submit</Button>            
-            </form> */}
-          </>
-      )}
-      {showSongList && <SongList model={model} handleSpeak={handleSpeak}/>}
-{/*    
-      <CoverSong/> */}
-            {/* <ChatForm handleSubmit={handleChatSubmit}/> */}
     
     </>
   );
