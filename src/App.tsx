@@ -469,7 +469,9 @@ myHeaders.append("Content-Type", "application/json");
   function handleToolCall(name :string , args : object) {
     if(!model2) return
     if(name === 'sing') {
-      handleSpeak( 'https://storage.googleapis.com/song-testing-bucket-426522/BKZqGJONH68/93/vocals.mp3', model2)
+
+      //TODO ADD ERROR HANDLING... and make it not hardcoded... scrub
+      handleSpeak( 'https://storage.googleapis.com/song-testing-bucket-426522/xTTSMxjanAI/67/vocals.mp3', model2)
     }
   
   }
